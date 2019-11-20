@@ -364,7 +364,7 @@ func TestArticulationVertices_root(t *testing.T) {
 	graph := &Graph{}
 	graph.Init(false, edgeList)
 
-	cutNodes := graph.ArticulationVertices()
+	cutNodes := graph.ArticulationVertices(1)
 
 	if len(cutNodes) != 1 {
 		t.Errorf("len(cutNodes) should be 1, got %v", len(cutNodes))
@@ -385,7 +385,7 @@ func TestArticulationVertices_parent(t *testing.T) {
 	graph := &Graph{}
 	graph.Init(false, edgeList)
 
-	cutNodes := graph.ArticulationVertices()
+	cutNodes := graph.ArticulationVertices(1)
 
 	if len(cutNodes) != 1 {
 		t.Errorf("len(cutNodes) should be 1, got %v", len(cutNodes))
@@ -404,7 +404,7 @@ func TestArticulationVertices_bridge(t *testing.T) {
 	graph := &Graph{}
 	graph.Init(false, edgeList)
 
-	cutNodes := graph.ArticulationVertices()
+	cutNodes := graph.ArticulationVertices(1)
 
 	if len(cutNodes) != 1 {
 		t.Errorf("len(cutNodes) should be 1, got %v", len(cutNodes))

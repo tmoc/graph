@@ -286,7 +286,7 @@ func (g *Graph) HasCycles() bool {
 }
 
 // ArticulationVertices returns a map of all cut-nodes.
-func (g *Graph) ArticulationVertices() map[int]string {
+func (g *Graph) ArticulationVertices(start int) map[int]string {
 	cutNodes := make(map[int]string)
 	if g.nVertices == 0 {
 		return cutNodes
@@ -357,7 +357,7 @@ func (g *Graph) ArticulationVertices() map[int]string {
 		}
 	}
 
-	g.DepthFirstTraversal(1, pve, pvl, pe, data)
+	g.DepthFirstTraversal(start, pve, pvl, pe, data)
 
 	return cutNodes
 }
