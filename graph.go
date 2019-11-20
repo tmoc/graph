@@ -169,7 +169,11 @@ func (g *Graph) depthFirstTraverseVertex(
 			data.parent[y] = v
 			pe(v, y, data)
 			g.depthFirstTraverseVertex(y, pve, pvl, pe, data)
-		} else if g.directed == true || (data.discovered[y] == true && data.parent[v] != y) {
+			// The boolean expression for undirected graphs below is subtle.
+			// y is either an ancestor or a descendant. The processed check rules out
+			// descendant, and the parent check rules out parent ancestor. Only an edge to
+			// a non-parent ancestor should be processed, which would indicate a back edge.
+		} else if g.directed == true || (data.processed[y] == false && data.parent[v] != y) {
 			pe(v, y, data)
 		}
 		edgePointer = edgePointer.next
