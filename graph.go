@@ -455,7 +455,7 @@ func (g *Graph) StronglyConnectedComponents() (int, []int) {
 			return
 		}
 		if CROSS == class {
-			if scc[y] == -y {
+			if scc[y] == 0 {
 				if data.entryTime[y] < data.entryTime[low[x]] {
 					low[x] = y
 				}
