@@ -30,6 +30,7 @@ type TraversalData struct {
 	exitTime  []int
 }
 
+// Used to provide arbitrary processing behavior to traversal methods.
 type processVertex func(int, *TraversalData)
 type processEdge func(int, int, *TraversalData)
 
@@ -52,34 +53,6 @@ func adjustSize(size int) int {
 	return size + 1
 }
 
-// Determines the class of a given edge.
-func edgeClassification(x int, y int, data *TraversalData) EdgeClass {
-	if data.parent[y] == x {
-		return TREE
-	}
-	if data.discovered[y] && !data.processed[y] {
-		return BACK
-	}
-	if data.processed[y] && (data.entryTime[y] > data.entryTime[x]) {
-		return FORWARD
-	}
-	if data.processed[y] && (data.entryTime[y] < data.entryTime[x]) {
-		return CROSS
-	}
-	log.Fatalf("Cannot classify edge: %d, %d", x, y)
-	return -1
-}
-
-// Init initializes TraversalData for traversal.
-func (data *TraversalData) Init(g *Graph) {
-	size := adjustSize(g.nVertices)
-	data.discovered = make([]bool, size)
-	data.processed = make([]bool, size)
-	data.parent = make([]int, size)
-	data.entryTime = make([]int, size)
-	data.exitTime = make([]int, size)
-}
-
 // Insert an edge into the graph. Part of initialization.
 func (g *Graph) insertEdge(directed bool, x int, y int) {
 	g.edges[x] = &edge{y: y, next: g.edges[x]} // Place node at the head.
@@ -94,11 +67,11 @@ func (g *Graph) insertEdge(directed bool, x int, y int) {
 func (g *Graph) Init(directed bool, edgeList []int) {
 	g.directed = directed
 	length := len(edgeList)
-	keyMap := make(map[int]int)
+	vertexMap := make(map[int]int)
 	for i := 0; i < length; i++ {
-		keyMap[edgeList[i]] = 1
+		vertexMap[edgeList[i]] = 1
 	}
-	g.nVertices = len(keyMap)
+	g.nVertices = len(vertexMap)
 	g.edges = make([]*edge, adjustSize(g.nVertices))
 	for xIndex := 0; xIndex < length-1; xIndex += 2 {
 		yIndex := xIndex + 1
@@ -106,6 +79,16 @@ func (g *Graph) Init(directed bool, edgeList []int) {
 		y := edgeList[yIndex]
 		g.insertEdge(directed, x, y)
 	}
+}
+
+// Init initializes TraversalData for traversal.
+func (data *TraversalData) Init(g *Graph) {
+	size := adjustSize(g.nVertices)
+	data.discovered = make([]bool, size)
+	data.processed = make([]bool, size)
+	data.parent = make([]int, size)
+	data.entryTime = make([]int, size)
+	data.exitTime = make([]int, size)
 }
 
 // BreadthFirstTraversal processes vertices in breadth-first order.
@@ -121,80 +104,69 @@ func (g *Graph) BreadthFirstTraversal(
 	queue.PushBack(start)
 
 	for queue.Len() != 0 {
-		currentVertex := queue.Remove(queue.Front()).(int)
-		pve(currentVertex, data)
-		data.processed[currentVertex] = true
+		x := queue.Remove(queue.Front()).(int)
+		pve(x, data)
+		data.processed[x] = true
 
-		edgePointer := g.edges[currentVertex]
+		edgePointer := g.edges[x]
 
 		for edgePointer != nil {
 			y := edgePointer.y
 			if g.directed == true || data.processed[y] == false {
-				pe(currentVertex, y, data)
+				pe(x, y, data)
 			}
 			if data.discovered[y] == false {
 				queue.PushBack(y)
 				data.discovered[y] = true
-				data.parent[y] = currentVertex
+				data.parent[y] = x
 			}
 			edgePointer = edgePointer.next
 		}
 
-		pvl(currentVertex, data)
+		pvl(x, data)
 	}
 
 	return data
 }
 
-// Used by DepthFirstTraversal after initialization to recursively traverse
-// vertices.
-func (g *Graph) depthFirstTraverseVertex(
-	v int,
+// DepthFirstTraversal processes vertices in depth-first order.
+func (g *Graph) DepthFirstTraversal(
+	x int,
 	pve processVertex,
 	pvl processVertex,
 	pe processEdge,
 	data *TraversalData,
-) {
-	data.discovered[v] = true
-	pve(v, data)
+) *TraversalData {
+	data.discovered[x] = true
+	pve(x, data)
 
 	data.time++
-	data.entryTime[v] = data.time
+	data.entryTime[x] = data.time
 
-	edgePointer := g.edges[v]
+	edgePointer := g.edges[x]
 
 	for edgePointer != nil {
 		y := edgePointer.y
 		if data.discovered[y] == false {
-			data.parent[y] = v
-			pe(v, y, data)
-			g.depthFirstTraverseVertex(y, pve, pvl, pe, data)
+			data.parent[y] = x
+			pe(x, y, data)
+			g.DepthFirstTraversal(y, pve, pvl, pe, data)
 			// The boolean expression for undirected graphs below is subtle.
 			// y is either an ancestor or a descendant. The processed check rules out
 			// descendant, and the parent check rules out parent ancestor. Only an edge to
 			// a non-parent ancestor should be processed, which would indicate a back edge.
-		} else if g.directed == true || (data.processed[y] == false && data.parent[v] != y) {
-			pe(v, y, data)
+		} else if g.directed == true || (data.processed[y] == false && data.parent[x] != y) {
+			pe(x, y, data)
 		}
 		edgePointer = edgePointer.next
 	}
 
-	data.processed[v] = true
-	pvl(v, data)
+	data.processed[x] = true
+	pvl(x, data)
 
-	data.exitTime[v] = data.time
+	data.exitTime[x] = data.time
 	data.time++
-}
 
-// DepthFirstTraversal processes vertices in depth-first order.
-func (g *Graph) DepthFirstTraversal(
-	start int,
-	pve processVertex, // Process vertex early.
-	pvl processVertex, // Process vertex late.
-	pe processEdge,
-	data *TraversalData,
-) *TraversalData {
-	g.depthFirstTraverseVertex(start, pve, pvl, pe, data)
 	return data
 }
 
@@ -283,6 +255,24 @@ func (g *Graph) HasCycles() bool {
 	g.DepthFirstTraversal(1, pve, pvl, pe, data)
 
 	return hasCycles
+}
+
+// Determines the class of a given edge.
+func edgeClassification(x int, y int, data *TraversalData) EdgeClass {
+	if data.parent[y] == x {
+		return TREE
+	}
+	if data.discovered[y] && !data.processed[y] {
+		return BACK
+	}
+	if data.processed[y] && (data.entryTime[y] > data.entryTime[x]) {
+		return FORWARD
+	}
+	if data.processed[y] && (data.entryTime[y] < data.entryTime[x]) {
+		return CROSS
+	}
+	log.Fatalf("Cannot classify edge: %d, %d", x, y)
+	return -1
 }
 
 // ArticulationVertices returns a map of all cut-nodes.
